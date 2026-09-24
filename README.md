@@ -1,16 +1,26 @@
-# 🏛️ ZelaBelém — Central Colaborativa de Inteligência Urbana
+<p align="center">
+  <img src="public/logo.png" alt="ZelaBelém Logo" width="220" />
+</p>
 
-> **Plataforma web para registro, mapeamento geolocalizado, priorização comunitária e gestão transparente de problemas urbanos em Belém do Pará.**
+<h1 align="center">🏛️ ZelaBelém — Central Colaborativa de Inteligência Urbana</h1>
 
-[![Deploy with Vercel](https://img.shields.io/badge/Deploy-Vercel-black?style=flat&logo=vercel)](https://zelabelem.vercel.app/)
-[![React](https://img.shields.io/badge/React-19.2-61dafb?style=flat&logo=react)](https://react.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?style=flat&logo=typescript)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-6.x-646cff?style=flat&logo=vite)](https://vitejs.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?style=flat&logo=tailwindcss)](https://tailwindcss.com/)
-[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL_%2B_Realtime-3ecf8e?style=flat&logo=supabase)](https://supabase.com/)
-[![Groq AI](https://img.shields.io/badge/IA-Groq_Llama--3-f55036?style=flat)](https://groq.com/)
+<p align="center">
+  <strong>Plataforma web para registro, mapeamento geolocalizado, priorização comunitária e gestão transparente de problemas urbanos em Belém do Pará.</strong>
+</p>
 
-🌐 **Acesse a aplicação em produção:** [zelabelem.vercel.app](https://zelabelem.vercel.app/)
+<p align="center">
+  <a href="https://zelabelem.vercel.app/"><img src="https://img.shields.io/badge/Deploy-Vercel-black?style=flat&logo=vercel" alt="Deploy with Vercel" /></a>
+  <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-19.2-61dafb?style=flat&logo=react" alt="React" /></a>
+  <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-5.x-blue?style=flat&logo=typescript" alt="TypeScript" /></a>
+  <a href="https://vitejs.dev/"><img src="https://img.shields.io/badge/Vite-6.x-646cff?style=flat&logo=vite" alt="Vite" /></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Tailwind_CSS-v4-38bdf8?style=flat&logo=tailwindcss" alt="Tailwind CSS" /></a>
+  <a href="https://supabase.com/"><img src="https://img.shields.io/badge/Supabase-PostgreSQL_%2B_Realtime-3ecf8e?style=flat&logo=supabase" alt="Supabase" /></a>
+  <a href="https://groq.com/"><img src="https://img.shields.io/badge/IA-Groq_Llama--3-f55036?style=flat" alt="Groq AI" /></a>
+</p>
+
+<p align="center">
+  🌐 <strong>Acesse a aplicação em produção:</strong> <a href="https://zelabelem.vercel.app/">zelabelem.vercel.app</a>
+</p>
 
 ---
 
