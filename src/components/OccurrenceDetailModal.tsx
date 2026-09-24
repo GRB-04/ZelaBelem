@@ -127,7 +127,7 @@ export default function OccurrenceDetailModal({
 
 
   function handleShare() {
-    const text = `📍 Ocorrência em ${occurrence.neighborhood}: ${occurrence.title}\n${occurrence.description}\n\nRegistrado no ZelaBelém`
+    const text = `📍 Ocorrência em ${occurrence.neighborhood}: ${occurrence.title}\n${occurrence.description}\n\nRegistrado no Zela`
     if (navigator.share) {
       navigator.share({ title: occurrence.title, text }).catch(() => {})
     } else {

@@ -125,7 +125,7 @@ export function ChatWidget({
       {
         id: createId(),
         role: "assistant",
-        text: `Olá, ${currentUserName}! 👋 Sou o Zé, assistente do ZelaBelém.\n\nMe conta: qual problema urbano você está vendo? Pode descrever com suas próprias palavras.`,
+        text: `Olá, ${currentUserName}! 👋 Sou o Zé, assistente do Zela.\n\nMe conta: qual problema urbano você está vendo? Pode descrever com suas próprias palavras.`,
       },
     ];
   });
@@ -466,7 +466,7 @@ export function ChatWidget({
                       display: "inline-block",
                     }}
                   />
-                  Online • ZelaBelém
+                  Online • Zela
                 </div>
               </div>
             </div>

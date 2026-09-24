@@ -38,10 +38,10 @@ function TopBar({
   return (
     <header className="topbar">
       <div className="topbar-left">
-        <img src="/logo.png" alt="ZelaBelém Logo" className="brand-logo" />
+        <img src="/logo.png" alt="Zela Logo" className="brand-logo" />
 
         <div>
-          <h1 className="brand-title">ZelaBelém</h1>
+          <h1 className="brand-title">Zela</h1>
           <p className="brand-subtitle">Sistema colaborativo de problemas urbanos</p>
         </div>
       </div>

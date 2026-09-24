@@ -73,7 +73,7 @@ export default function UrbanAssistantChat({
     {
       id: crypto.randomUUID(),
       role: 'assistant',
-      text: `Olá! Sou o Zé, assistente do ZelaBelém 👋 Sobre o que você quer falar? Pode me contar algum problema que está vendo na cidade!`,
+      text: `Olá! Sou o Zé, assistente do Zela 👋 Sobre o que você quer falar? Pode me contar algum problema que está vendo na cidade!`,
     },
   ])
   const [loading, setLoading] = useState(false)
@@ -342,7 +342,7 @@ export default function UrbanAssistantChat({
             <h3 className="chat-title">Assistente Zé</h3>
             <span className="chat-status-dot"></span>
           </div>
-          <p className="chat-subtitle">Online • ZelaBelém</p>
+          <p className="chat-subtitle">Online • Zela</p>
         </div>
         <button className="chat-close-button" onClick={onClose} aria-label="Fechar chat">
           <X size={16} />

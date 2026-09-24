@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="public/logo.png" alt="ZelaBelém Logo" width="220" />
+  <img src="public/logo.png" alt="Zela Logo" width="220" />
 </p>
 
-<h1 align="center">🏛️ ZelaBelém — Central Colaborativa de Inteligência Urbana</h1>
+<h1 align="center">🏛️ Zela — Central Colaborativa de Inteligência Urbana</h1>
 
 <p align="center">
   <strong>Plataforma web para registro, mapeamento geolocalizado, priorização comunitária e gestão transparente de problemas urbanos em Belém do Pará.</strong>
@@ -41,7 +41,7 @@
 
 ## 📖 Sobre o Projeto
 
-O **ZelaBelém** é um sistema colaborativo de inteligência urbana desenvolvido para estreitar a ponte entre os cidadãos de Belém e o poder público. 
+O **Zela** é um sistema colaborativo de inteligência urbana desenvolvido para estreitar a ponte entre os cidadãos de Belém e o poder público. 
 
 A plataforma permite que moradores relatem problemas na infraestrutura de suas vias e bairros com fotos e localização exata no mapa, acompanhem a resolução em tempo real e apoiem ocorrências já abertas por vizinhos. Isso gera dados estratégicos que auxiliam órgãos municipais (como Seurb, SESAN e Defesa Civil) a identificar pontos críticos e priorizar manutenções com base no engajamento comunitário.
 
@@ -232,7 +232,7 @@ erDiagram
 ## 📁 Estrutura de Pastas
 
 ```text
-ZelaBelem/
+Zela/
 ├── public/                 # Imagens, favicon e logos estáticos
 ├── src/
 │   ├── app/                # Fluxos principais (Dashboard, Login, Telas)

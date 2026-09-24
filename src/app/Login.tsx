@@ -218,9 +218,9 @@ export default function Login({ onBypass: _onBypass, onAdminLogin }: LoginProps)
       <div style={s.card}>
         {/* Logo */}
         <div style={s.logoWrap}>
-          <img src="/logo.png" alt="ZelaBelém" style={s.logo} />
+          <img src="/logo.png" alt="Zela" style={s.logo} />
         </div>
-        <h1 style={s.title}>ZelaBelém</h1>
+        <h1 style={s.title}>Zela</h1>
 
         {/* ── Access type selector (shown on first step) ── */}
         {otpStep === "email" && (

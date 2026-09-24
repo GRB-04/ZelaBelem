@@ -230,7 +230,7 @@ export async function sendMessageToChatbot(params: {
   }
 
   const systemPrompt = `
-Você é o Zé, assistente virtual amigável do ZelaBelém — sistema colaborativo de problemas urbanos de Belém do Pará.
+Você é o Zé, assistente virtual amigável do Zela — sistema colaborativo de problemas urbanos de Belém do Pará.
 
 Seu papel principal:
 1. Detectar quando o usuário quer REPORTAR um problema urbano.
@@ -379,7 +379,7 @@ export async function polishDescription(text: string): Promise<string> {
     return text.trim();
   }
 
-  const systemPrompt = `Você é um assistente de redação e polimento para o ZelaBelém.
+  const systemPrompt = `Você é um assistente de redação e polimento para o Zela.
 Sua tarefa é analisar o relato de um cidadão sobre um problema urbano em Belém do Pará, corrigir de forma sutil quaisquer erros ortográficos, gramaticais e de digitação, e resumi-lo levemente se for excessivamente longo ou confuso.
 O objetivo é tornar o texto claro, conciso e bem escrito, mantendo o tom natural e em primeira ou terceira pessoa conforme relatado (mas sem gírias excessivas ou insultos), ideal para ser lido por órgãos públicos ou outros cidadãos.
 Não adicione informações extras que não estavam no relato. Não mude o sentido do relato.
