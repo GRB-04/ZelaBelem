@@ -102,12 +102,12 @@ export function OccurrenceMap({
   }
 
   const isDark = theme === 'dark';
-  // Stadia Maps — gratuito para localhost/dev, sem API key necessária
+  // CartoDB Basemaps — gratuito, sem API key, disponivel em produção
   const tileUrl = isDark
-    ? "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
-    : "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png";
+    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
 
-  const attribution = '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+  const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
   return (
     <div className="map-shell" style={{ position: "relative", width: "100%" }}>
