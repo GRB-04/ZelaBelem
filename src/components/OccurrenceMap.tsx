@@ -104,18 +104,13 @@ export function OccurrenceMap({
   const isDark = theme === 'dark';
   const stadiaKey = import.meta.env.VITE_STADIA_API_KEY;
 
-  // Usa Stadia Maps se a API key estiver configurada, senão usa Esri de fallback
-  const tileUrl = stadiaKey
-    ? (isDark
-        ? `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key=${stadiaKey}`
-        : `https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=${stadiaKey}`)
-    : (isDark
-        ? "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
-        : "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}");
+  // Stadia Maps — autenticado por Domínio (no painel da Stadia) ou por API Key
+  const keyParam = stadiaKey ? `?api_key=${stadiaKey}` : '';
+  const tileUrl = isDark
+    ? `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png${keyParam}`
+    : `https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png${keyParam}`;
 
-  const attribution = stadiaKey
-    ? '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    : 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, DeLorme, NAVTEQ';
+  const attribution = '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
   return (
     <div className="map-shell" style={{ position: "relative", width: "100%" }}>
