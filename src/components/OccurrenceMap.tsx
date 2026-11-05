@@ -102,9 +102,9 @@ export function OccurrenceMap({
   }
 
   const isDark = theme === 'dark';
-  const stadiaKey = import.meta.env.VITE_STADIA_API_KEY;
+  const stadiaKey = import.meta.env.VITE_STADIA_API_KEY || '11ea0e11-72f1-4a3f-b211-4c8f0bc64590';
 
-  // Stadia Maps — autenticado por Domínio (no painel da Stadia) ou por API Key
+  // Stadia Maps com chave oficial
   const keyParam = stadiaKey ? `?api_key=${stadiaKey}` : '';
   const tileUrl = isDark
     ? `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png${keyParam}`

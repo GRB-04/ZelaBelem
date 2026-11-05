@@ -435,7 +435,7 @@ function ReportIssueModal({ onClose, onCreate, initialData, theme = 'light' }: R
     }
   }
 
-  const stadiaKey = import.meta.env.VITE_STADIA_API_KEY;
+  const stadiaKey = import.meta.env.VITE_STADIA_API_KEY || '11ea0e11-72f1-4a3f-b211-4c8f0bc64590';
 
   const keyParam = stadiaKey ? `?api_key=${stadiaKey}` : '';
   const tileUrl = isDark
