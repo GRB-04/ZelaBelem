@@ -102,12 +102,12 @@ export function OccurrenceMap({
   }
 
   const isDark = theme === 'dark';
-  // OpenStreetMap — gratuito, sem API key, disponivel em produção
+  // Esri — gratuito, sem API key, estilos dark e light profissionais
   const tileUrl = isDark
-    ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+    ? "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+    : "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}";
 
-  const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+  const attribution = 'Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, DeLorme, NAVTEQ';
 
   return (
     <div className="map-shell" style={{ position: "relative", width: "100%" }}>
@@ -214,7 +214,7 @@ export function OccurrenceMap({
         style={{ width: "100%", height: "100%" }}
       >
         <MapController center={mapCenter} zoom={mapZoom} />
-        <TileLayer url={tileUrl} attribution={attribution} className={isDark ? "map-tiles-dark" : ""} />
+        <TileLayer url={tileUrl} attribution={attribution}  />
 
         {userPos && (
           <Marker position={userPos} icon={createUserIcon()} />
