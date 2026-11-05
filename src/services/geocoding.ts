@@ -7,6 +7,25 @@ export interface AddressSuggestion {
   longitude: number
 }
 
+interface NominatimAddress {
+  suburb?: string
+  neighbourhood?: string
+  city_district?: string
+  quarter?: string
+  city?: string
+  road?: string
+  pedestrian?: string
+  house_number?: string
+}
+
+interface NominatimItem {
+  place_id?: number | string
+  lat: string
+  lon: string
+  display_name: string
+  address: NominatimAddress
+}
+
 // Search using Nominatim (OSM)
 async function searchAddressesNominatim(query: string): Promise<AddressSuggestion[]> {
   let searchQuery = query
@@ -28,7 +47,7 @@ async function searchAddressesNominatim(query: string): Promise<AddressSuggestio
     const data = await response.json()
     if (!Array.isArray(data)) return []
 
-    const mapped = data.map((item: any, index: number) => {
+    const mapped = (data as NominatimItem[]).map((item: NominatimItem, index: number) => {
       const lat = parseFloat(item.lat)
       const lon = parseFloat(item.lon)
 
@@ -67,7 +86,7 @@ async function searchAddressesNominatim(query: string): Promise<AddressSuggestio
     })
 
     const seen = new Set<string>()
-    return mapped.filter((item: any) => {
+    return mapped.filter((item: AddressSuggestion) => {
       if (!item) return false
       const key = item.label.toLowerCase()
       if (seen.has(key)) return false

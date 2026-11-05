@@ -4,7 +4,7 @@ import { sendMessageToChatbot, polishDescription, type ChatHistoryMessage, type 
 
 interface UrbanAssistantChatProps {
   onClose: () => void
-  onStartReport: (initialData: any) => void
+  onStartReport: (initialData: Partial<IssueDraft>) => void
   currentUserName?: string
 }
 
@@ -24,10 +24,36 @@ type FlowStep =
   | 'anonymous'      // asking if anonymous
   | 'review'         // showing final report card
 
+interface SpeechRecognitionResultItem {
+  transcript: string
+}
+
+interface SpeechRecognitionResultList {
+  [index: number]: {
+    [index: number]: SpeechRecognitionResultItem
+  }
+}
+
+interface SpeechRecognitionEvent {
+  results: SpeechRecognitionResultList
+}
+
+interface ISpeechRecognition {
+  lang: string
+  continuous: boolean
+  interimResults: boolean
+  onstart: () => void
+  onend: () => void
+  onerror: () => void
+  onresult: (e: SpeechRecognitionEvent) => void
+  start: () => void
+  stop: () => void
+}
+
 declare global {
   interface Window {
-    SpeechRecognition?: any
-    webkitSpeechRecognition?: any
+    SpeechRecognition?: new () => ISpeechRecognition
+    webkitSpeechRecognition?: new () => ISpeechRecognition
   }
 }
 
@@ -81,11 +107,14 @@ export default function UrbanAssistantChat({
   const [draft, setDraft] = useState<IssueDraft>({})
   const [isRecording, setIsRecording] = useState(false)
   const [micError, setMicError] = useState('')
-  const [speechSupported, setSpeechSupported] = useState(false)
+  const [speechSupported] = useState(() => {
+    if (typeof window === 'undefined') return false
+    return Boolean(window.SpeechRecognition || window.webkitSpeechRecognition)
+  })
   const [locating, setLocating] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
-  const recognitionRef = useRef<any>(null)
+  const recognitionRef = useRef<ISpeechRecognition | null>(null)
   // history for Groq (only used in idle step to detect intent)
   const historyRef = useRef<ChatHistoryMessage[]>([])
 
@@ -97,7 +126,6 @@ export default function UrbanAssistantChat({
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition
     if (SR) {
-      setSpeechSupported(true)
       const rec = new SR()
       rec.lang = 'pt-BR'
       rec.continuous = false
@@ -105,14 +133,18 @@ export default function UrbanAssistantChat({
       rec.onstart = () => { setIsRecording(true); setMicError('') }
       rec.onend = () => setIsRecording(false)
       rec.onerror = () => { setMicError('Erro ao acessar o microfone.'); setIsRecording(false) }
-      rec.onresult = (e: any) => setInput(e.results[0][0].transcript)
+      rec.onresult = (e: SpeechRecognitionEvent) => setInput(e.results[0][0].transcript)
       recognitionRef.current = rec
     }
   }, [])
 
   const toggleRecording = () => {
     if (!recognitionRef.current) return
-    isRecording ? recognitionRef.current.stop() : recognitionRef.current.start()
+    if (isRecording) {
+      recognitionRef.current.stop()
+    } else {
+      recognitionRef.current.start()
+    }
   }
 
   // Add message helper
@@ -153,7 +185,7 @@ export default function UrbanAssistantChat({
             ...prev,
             address: address,
             neighborhood: neighborhood,
-            coordinates: { lat: latitude, lng: longitude } as any,
+            coordinates: { lat: latitude, lng: longitude },
           }))
 
           // Move to next step

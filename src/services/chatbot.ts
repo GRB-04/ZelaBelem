@@ -11,6 +11,7 @@ export type IssueDraft = {
   description?: string;
   severity?: Severity;
   anonymous?: boolean;
+  coordinates?: { lat: number; lng: number };
 };
 
 export type ChatHistoryMessage = {
@@ -128,13 +129,13 @@ function localChatbotFallback(
 
   // 3. Detect Address
   if (!draft.address) {
-    const streetRegex = /(?:na rua|na av|na avenida|na travessa|na tv|no endereco|na trav|no beco|passagem|travessa|avenida|rua)\s+([a-zA-Z0-9ºª\s\-]+?)(?:,|$| no bairro| em | perto| proximo| de | da | do )/i;
+    const streetRegex = /(?:na rua|na av|na avenida|na travessa|na tv|no endereco|na trav|no beco|passagem|travessa|avenida|rua)\s+([a-zA-Z0-9ºª\s-]+?)(?:,|$| no bairro| em | perto| proximo| de | da | do )/i;
     const match = userMessage.match(streetRegex);
     if (match && match[1] && match[1].trim().length > 3) {
       draft.address = match[1].trim();
     } else {
       // Look for street words directly if no preposition
-      const directRegex = /\b(rua|avenida|av\.|travessa|tv\.|passagem|beco)\s+([a-zA-Z0-9ºª\s\-]+?)(?:,|$| no bairro| em | perto| proximo| de | da | do )/i;
+      const directRegex = /\b(rua|avenida|av\.|travessa|tv\.|passagem|beco)\s+([a-zA-Z0-9ºª\s-]+?)(?:,|$| no bairro| em | perto| proximo| de | da | do )/i;
       const matchDirect = userMessage.match(directRegex);
       if (matchDirect && matchDirect[0]) {
         draft.address = matchDirect[0].trim();

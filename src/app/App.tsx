@@ -1,25 +1,25 @@
 import { useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
-import Login, { getAdminSession, clearAdminSession, type AdminSession } from "./Login";
+import { getAdminSession, clearAdminSession, type AdminSession } from "../lib/adminSession";
+import Login from "./Login";
 import Dashboard from "../pages/Dashboard";
 
 export default function App() {
-  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [adminSession, setAdminSession] = useState<AdminSession | null>(() => getAdminSession());
   const [session, setSession] = useState<Session | null>(null);
-  const [adminSession, setAdminSession] = useState<AdminSession | null>(null);
-  const [bypass, setBypass] = useState(false);
+  const [loading, setLoading] = useState<boolean>(() => {
+    if (getAdminSession()) return false;
+    return isSupabaseConfigured;
+  });
+  const [bypass, setBypass] = useState<boolean>(() => {
+    return localStorage.getItem("zelabelem_guest_mode") === "true";
+  });
 
   useEffect(() => {
-    // Check for persisted admin session first
-    const savedAdmin = getAdminSession();
-    if (savedAdmin) {
-      setAdminSession(savedAdmin);
-      setLoading(false);
+    if (!isSupabaseConfigured || adminSession) {
       return;
     }
-
-    if (!isSupabaseConfigured) return;
 
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
@@ -27,22 +27,38 @@ export default function App() {
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
+      (_event, newSession) => {
+        setSession(newSession);
         setLoading(false);
       }
     );
 
     return () => listener.subscription.unsubscribe();
-  }, []);
+  }, [adminSession]);
 
-  function handleAdminLogin(session: AdminSession) {
-    setAdminSession(session);
+  function handleAdminLogin(newAdminSession: AdminSession) {
+    setAdminSession(newAdminSession);
+    localStorage.removeItem("zelabelem_guest_mode");
   }
 
   function handleAdminLogout() {
     clearAdminSession();
     setAdminSession(null);
+    setBypass(false);
+    localStorage.removeItem("zelabelem_guest_mode");
+  }
+
+  function handleCitizenBypass() {
+    setBypass(true);
+    localStorage.setItem("zelabelem_guest_mode", "true");
+  }
+
+  function handleCitizenLogout() {
+    setBypass(false);
+    localStorage.removeItem("zelabelem_guest_mode");
+    if (isSupabaseConfigured) {
+      supabase.auth.signOut();
+    }
   }
 
   if (loading) return null;
@@ -58,15 +74,15 @@ export default function App() {
     );
   }
 
-  // Regular user flow
-  if (isSupabaseConfigured && !session && !bypass) {
+  // Regular user flow: show login if neither session nor guest mode is active
+  if (!session && !bypass) {
     return (
       <Login
-        onBypass={() => setBypass(true)}
+        onBypass={handleCitizenBypass}
         onAdminLogin={handleAdminLogin}
       />
     );
   }
 
-  return <Dashboard session={session} />;
+  return <Dashboard session={session} onCitizenLogout={handleCitizenLogout} />;
 }

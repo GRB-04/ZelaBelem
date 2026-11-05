@@ -17,6 +17,10 @@ import {
   Navigation,
   ChevronDown,
   ImageOff,
+  Pencil,
+  Trash2,
+  MessageSquarePlus,
+  Save,
 } from 'lucide-react'
 import type { Occurrence } from '../types/occurrence'
 
@@ -42,6 +46,9 @@ interface OccurrenceDetailModalProps {
   isSupported: boolean
   isAdmin?: boolean
   onChangeStatus?: (id: string, status: Occurrence['status']) => void
+  onDelete?: (id: string) => void
+  onEdit?: (id: string, title: string, description: string) => void
+  onSaveNote?: (id: string, note: string) => void
   theme?: 'light' | 'dark'
 }
 
@@ -102,12 +109,46 @@ export default function OccurrenceDetailModal({
   isSupported,
   isAdmin = false,
   onChangeStatus,
+  onDelete,
+  onEdit,
+  onSaveNote,
   theme = 'dark',
 }: OccurrenceDetailModalProps) {
   const isDark = theme === 'dark'
   const [copied, setCopied] = useState(false)
   const [imgError, setImgError] = useState(false)
   const modalRef = useRef<HTMLDivElement>(null)
+
+  // Admin state
+  const [editingFields, setEditingFields] = useState(false)
+  const [editTitle, setEditTitle] = useState(occurrence.title)
+  const [editDescription, setEditDescription] = useState(occurrence.description)
+  const [adminNote, setAdminNote] = useState(occurrence.adminNote ?? '')
+  const [editingNote, setEditingNote] = useState(false)
+  const [noteSaved, setNoteSaved] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  function handleSaveEdit() {
+    onEdit?.(occurrence.id, editTitle.trim() || occurrence.title, editDescription.trim())
+    setEditingFields(false)
+  }
+
+  function handleSaveNote() {
+    onSaveNote?.(occurrence.id, adminNote)
+    setEditingNote(false)
+    setNoteSaved(true)
+    setTimeout(() => setNoteSaved(false), 2500)
+  }
+
+  function handleDeleteClick() {
+    if (confirmDelete) {
+      onDelete?.(occurrence.id)
+      onClose()
+    } else {
+      setConfirmDelete(true)
+      setTimeout(() => setConfirmDelete(false), 3500)
+    }
+  }
 
   const hasCoords =
     typeof occurrence.latitude === 'number' &&
@@ -402,20 +443,193 @@ export default function OccurrenceDetailModal({
             </div>
           )}
 
-          {/* Admin info notice */}
-          {isAdmin && (
+          {/* Admin note — visible to everyone */}
+          {occurrence.adminNote && (
             <div style={{
-              background: 'rgba(245,158,11,0.08)',
-              border: '1px solid rgba(245,158,11,0.2)',
+              background: 'rgba(34,197,94,0.07)',
+              border: '1px solid rgba(34,197,94,0.22)',
               borderRadius: 14,
-              padding: '12px 16px',
+              padding: '14px 18px',
               display: 'flex',
               gap: 10,
               alignItems: 'flex-start',
             }}>
-              <Shield size={15} style={{ color: '#f59e0b', flexShrink: 0, marginTop: 1 }} />
-              <div style={{ fontSize: 13, color: '#f59e0b' }}>
-                <strong>Modo Administrador ativo.</strong> Use o seletor de status acima para atualizar o andamento desta ocorrência. As alterações serão salvas automaticamente.
+              <Shield size={15} style={{ color: '#4ade80', flexShrink: 0, marginTop: 2 }} />
+              <div>
+                <div style={{ fontSize: 11, color: '#4ade80', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 4 }}>
+                  Resposta oficial da prefeitura
+                </div>
+                <div style={{ fontSize: 13, color: text, lineHeight: 1.55 }}>{occurrence.adminNote}</div>
+              </div>
+            </div>
+          )}
+
+          {/* Admin panel */}
+          {isAdmin && (
+            <div style={{
+              background: 'rgba(245,158,11,0.06)',
+              border: '1px solid rgba(245,158,11,0.18)',
+              borderRadius: 16,
+              padding: '16px 18px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 14,
+            }}>
+              {/* Header */}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f59e0b' }}>
+                  <Shield size={14} />
+                  <span style={{ fontSize: 13, fontWeight: 700 }}>Painel do Administrador</span>
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {!editingFields && (
+                    <button
+                      onClick={() => { setEditingFields(true); setEditTitle(occurrence.title); setEditDescription(occurrence.description) }}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px',
+                        borderRadius: 20, fontSize: 12, fontWeight: 600,
+                        background: 'rgba(99,102,241,0.15)', color: '#818cf8',
+                        border: '1px solid rgba(99,102,241,0.3)', cursor: 'pointer',
+                      }}
+                    >
+                      <Pencil size={11} /> Editar
+                    </button>
+                  )}
+                  <button
+                    onClick={handleDeleteClick}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 12px',
+                      borderRadius: 20, fontSize: 12, fontWeight: 600,
+                      background: confirmDelete ? 'rgba(239,68,68,0.25)' : 'rgba(239,68,68,0.1)',
+                      color: '#f87171',
+                      border: confirmDelete ? '1px solid rgba(239,68,68,0.5)' : '1px solid rgba(239,68,68,0.25)',
+                      cursor: 'pointer', transition: 'all 0.2s',
+                    }}
+                  >
+                    <Trash2 size={11} />
+                    {confirmDelete ? 'Confirmar exclusão?' : 'Excluir'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Inline edit fields */}
+              {editingFields && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <input
+                    autoFocus
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    style={{
+                      fontSize: 14, fontWeight: 600, padding: '8px 12px',
+                      borderRadius: 10, border: `1px solid rgba(245,158,11,0.3)`,
+                      background: isDark ? '#1e1e28' : '#f5f5f0',
+                      color: isDark ? '#f0f0f5' : '#111827', outline: 'none', width: '100%',
+                    }}
+                    placeholder="Título"
+                  />
+                  <textarea
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    rows={3}
+                    style={{
+                      fontSize: 13, padding: '8px 12px',
+                      borderRadius: 10, border: `1px solid rgba(245,158,11,0.3)`,
+                      background: isDark ? '#1e1e28' : '#f5f5f0',
+                      color: isDark ? '#f0f0f5' : '#111827', outline: 'none',
+                      resize: 'vertical', width: '100%', fontFamily: 'inherit',
+                    }}
+                    placeholder="Descrição"
+                  />
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <button
+                      onClick={handleSaveEdit}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 16px',
+                        borderRadius: 10, fontSize: 13, fontWeight: 600,
+                        background: '#22c55e', color: '#fff', border: 'none', cursor: 'pointer',
+                      }}
+                    >
+                      <Save size={13} /> Salvar alterações
+                    </button>
+                    <button
+                      onClick={() => setEditingFields(false)}
+                      style={{
+                        display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px',
+                        borderRadius: 10, fontSize: 13, fontWeight: 500,
+                        background: 'transparent', color: '#8888a0',
+                        border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
+                      }}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Admin note */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f59e0b' }}>
+                  <MessageSquarePlus size={13} />
+                  <span style={{ fontSize: 12, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.04em' }}>Nota oficial (visível ao público)</span>
+                </div>
+                {editingNote ? (
+                  <>
+                    <textarea
+                      autoFocus
+                      value={adminNote}
+                      onChange={(e) => setAdminNote(e.target.value)}
+                      rows={3}
+                      placeholder="Ex: Equipe de manutenção acionada. Prazo estimado: 5 dias úteis."
+                      style={{
+                        fontSize: 13, padding: '10px 14px',
+                        borderRadius: 10, border: '1px solid rgba(245,158,11,0.35)',
+                        background: isDark ? '#1e1e28' : '#f5f5f0',
+                        color: isDark ? '#f0f0f5' : '#111827', outline: 'none',
+                        resize: 'vertical', width: '100%', fontFamily: 'inherit',
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        onClick={handleSaveNote}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 16px',
+                          borderRadius: 10, fontSize: 13, fontWeight: 600,
+                          background: '#f59e0b', color: '#000', border: 'none', cursor: 'pointer',
+                        }}
+                      >
+                        <Save size={13} /> Publicar nota
+                      </button>
+                      <button
+                        onClick={() => { setEditingNote(false); setAdminNote(occurrence.adminNote ?? '') }}
+                        style={{
+                          display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 14px',
+                          borderRadius: 10, fontSize: 13, fontWeight: 500,
+                          background: 'transparent', color: '#8888a0',
+                          border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
+                        }}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div
+                    onClick={() => setEditingNote(true)}
+                    style={{
+                      minHeight: 48, padding: '10px 14px',
+                      borderRadius: 10, border: '1px dashed rgba(245,158,11,0.3)',
+                      background: isDark ? 'rgba(245,158,11,0.04)' : 'rgba(245,158,11,0.04)',
+                      cursor: 'pointer', fontSize: 13,
+                      color: adminNote ? (isDark ? '#f0f0f5' : '#111827') : '#8888a0',
+                      fontStyle: adminNote ? 'normal' : 'italic',
+                      lineHeight: 1.5,
+                    }}
+                  >
+                    {noteSaved
+                      ? <span style={{ color: '#4ade80' }}>✓ Nota salva com sucesso!</span>
+                      : adminNote || 'Clique para adicionar uma resposta oficial…'}
+                  </div>
+                )}
               </div>
             </div>
           )}

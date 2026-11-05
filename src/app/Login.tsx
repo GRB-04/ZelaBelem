@@ -1,30 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
-import { supabase } from "../lib/supabase";
+import { supabase, isSupabaseConfigured } from "../lib/supabase";
 
-// ─── Admin credentials (hardcoded for academic use) ───────────────────────
-const ADMIN_EMAIL = "admin@zelabelem.com.br";
-const ADMIN_PASSWORD = "admin";
-const ADMIN_SESSION_KEY = "zelabelem_admin_session";
-
-export type AdminSession = {
-  isAdmin: true;
-  email: string;
-  name: string;
-};
-
-export function getAdminSession(): AdminSession | null {
-  try {
-    const raw = localStorage.getItem(ADMIN_SESSION_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw) as AdminSession;
-  } catch {
-    return null;
-  }
-}
-
-export function clearAdminSession() {
-  localStorage.removeItem(ADMIN_SESSION_KEY);
-}
+import { ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_SESSION_KEY, type AdminSession } from "../lib/adminSession";
 
 type OtpStep = "email" | "code" | "password";
 
@@ -33,7 +10,7 @@ interface LoginProps {
   onAdminLogin?: (session: AdminSession) => void;
 }
 
-export default function Login({ onBypass: _onBypass, onAdminLogin }: LoginProps) {
+export default function Login({ onBypass, onAdminLogin }: LoginProps) {
   // ─── OTP flow ────────────────────────────────────────────────────────────
   const [otpStep, setOtpStep] = useState<OtpStep>("email");
   const [authMode, setAuthMode] = useState<"login" | "register" | "admin">("login");
@@ -85,10 +62,17 @@ export default function Login({ onBypass: _onBypass, onAdminLogin }: LoginProps)
       return;
     }
 
+    if (!isSupabaseConfigured) {
+      setError("⚠️ Modo de demonstração local ativo. Utilize o botão 'Acessar como Convidado' abaixo para entrar imediatamente ou a aba 'Administrador' (senha: admin).");
+      return;
+    }
+
     try {
       setLoading(true);
 
-      const options: any = { shouldCreateUser: authMode === "register" };
+      const options: { shouldCreateUser: boolean; data?: { full_name: string } } = {
+        shouldCreateUser: authMode === "register",
+      };
       if (authMode === "register" && otpName.trim()) {
         options.data = { full_name: otpName.trim() };
       }
@@ -102,8 +86,8 @@ export default function Login({ onBypass: _onBypass, onAdminLogin }: LoginProps)
       setOtpStep("code");
       setResendCooldown(60);
       setSuccess("📩 Código enviado! Confira sua caixa de entrada.");
-    } catch (err: any) {
-      const msg = String(err?.message ?? "");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err ?? "");
       if (msg.toLowerCase().includes("rate limit")) {
         setError("Muitas tentativas. Aguarde alguns minutos.");
       } else if (msg.toLowerCase().includes("signups not allowed") || msg.toLowerCase().includes("not found")) {
@@ -172,8 +156,8 @@ export default function Login({ onBypass: _onBypass, onAdminLogin }: LoginProps)
       }
 
       setSuccess("✅ Acesso autorizado! Carregando painel…");
-    } catch (err: any) {
-      const msg = String(err?.message ?? "");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err ?? "");
       if (msg.toLowerCase().includes("invalid") || msg.toLowerCase().includes("expired")) {
         setError("Código inválido ou expirado. Solicite um novo.");
       } else {
@@ -304,6 +288,24 @@ export default function Login({ onBypass: _onBypass, onAdminLogin }: LoginProps)
               >
                 {loading ? "Enviando…" : (authMode === "login" ? "Continuar" : "Criar conta")}
               </button>
+
+              {onBypass && (
+                <>
+                  <div style={s.divider}>
+                    <span style={s.dividerLine} />
+                    <span style={s.dividerText}>ou demonstração</span>
+                    <span style={s.dividerLine} />
+                  </div>
+
+                  <button
+                    type="button"
+                    style={s.guestBtn}
+                    onClick={onBypass}
+                  >
+                    🚀 Acessar como Convidado
+                  </button>
+                </>
+              )}
 
               {success && <div style={s.success}>{success}</div>}
               {error && <div style={s.error}>{error}</div>}
@@ -616,5 +618,35 @@ const s: Record<string, React.CSSProperties> = {
     color: "#FECACA",
     fontSize: 13,
     textAlign: "center",
+  },
+  divider: {
+    display: "flex",
+    alignItems: "center",
+    margin: "14px 0 10px 0",
+    gap: 10,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.1)",
+  },
+  dividerText: {
+    fontSize: 11,
+    color: "#71717A",
+    textTransform: "uppercase",
+    letterSpacing: "0.05em",
+  },
+  guestBtn: {
+    width: "100%",
+    padding: "12px 14px",
+    background: "rgba(255,255,255,0.06)",
+    color: "#F4F4F5",
+    border: "1px solid rgba(255,255,255,0.14)",
+    borderRadius: 14,
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: "pointer",
+    textAlign: "center",
+    transition: "background 0.2s, border-color 0.2s",
   },
 };

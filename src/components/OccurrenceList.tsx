@@ -7,10 +7,23 @@ interface OccurrenceListProps {
   votedByMe?: Set<string>
   isAdmin?: boolean
   onChangeStatus?: (id: string, status: Occurrence['status']) => void
+  onDelete?: (id: string) => void
+  onEdit?: (id: string, title: string, description: string) => void
+  onSaveNote?: (id: string, note: string) => void
   theme?: 'light' | 'dark'
 }
 
-function OccurrenceList({ occurrences, onSupport, votedByMe = new Set(), isAdmin, onChangeStatus, theme = 'dark' }: OccurrenceListProps) {
+function OccurrenceList({
+  occurrences,
+  onSupport,
+  votedByMe = new Set(),
+  isAdmin,
+  onChangeStatus,
+  onDelete,
+  onEdit,
+  onSaveNote,
+  theme = 'dark',
+}: OccurrenceListProps) {
   if (occurrences.length === 0) {
     return <div className="empty-state">Nenhuma ocorrência encontrada para essa busca.</div>
   }
@@ -25,6 +38,9 @@ function OccurrenceList({ occurrences, onSupport, votedByMe = new Set(), isAdmin
           isSupported={votedByMe.has(occurrence.id)}
           isAdmin={isAdmin}
           onChangeStatus={onChangeStatus}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          onSaveNote={onSaveNote}
           theme={theme}
         />
       ))}

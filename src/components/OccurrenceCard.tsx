@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Clock3, MapPin, ThumbsUp, ChevronDown, ChevronRight } from 'lucide-react'
+import { Clock3, MapPin, ThumbsUp, ChevronDown, ChevronRight, Trash2, Pencil, Check, X as XIcon } from 'lucide-react'
 import type { Occurrence } from '../types/occurrence'
 import OccurrenceDetailModal from './OccurrenceDetailModal'
 
@@ -9,6 +9,9 @@ interface OccurrenceCardProps {
   isSupported?: boolean
   isAdmin?: boolean
   onChangeStatus?: (id: string, status: Occurrence['status']) => void
+  onDelete?: (id: string) => void
+  onEdit?: (id: string, title: string, description: string) => void
+  onSaveNote?: (id: string, note: string) => void
   theme?: 'light' | 'dark'
 }
 
@@ -29,30 +32,133 @@ function getStatusClass(status: string) {
   return 'resolvida'
 }
 
-function OccurrenceCard({ occurrence, onSupport, isSupported, isAdmin, onChangeStatus, theme = 'dark' }: OccurrenceCardProps) {
+function OccurrenceCard({
+  occurrence,
+  onSupport,
+  isSupported,
+  isAdmin,
+  onChangeStatus,
+  onDelete,
+  onEdit,
+  onSaveNote,
+  theme = 'dark',
+}: OccurrenceCardProps) {
   const [detailOpen, setDetailOpen] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState(occurrence.title)
+  const [editDescription, setEditDescription] = useState(occurrence.description)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  function handleSaveEdit(e: React.MouseEvent) {
+    e.stopPropagation()
+    onEdit?.(occurrence.id, editTitle.trim() || occurrence.title, editDescription.trim())
+    setEditing(false)
+  }
+
+  function handleCancelEdit(e: React.MouseEvent) {
+    e.stopPropagation()
+    setEditTitle(occurrence.title)
+    setEditDescription(occurrence.description)
+    setEditing(false)
+  }
+
+  function handleDeleteClick(e: React.MouseEvent) {
+    e.stopPropagation()
+    if (confirmDelete) {
+      onDelete?.(occurrence.id)
+    } else {
+      setConfirmDelete(true)
+      setTimeout(() => setConfirmDelete(false), 3000)
+    }
+  }
+
+  const isDark = theme === 'dark'
+  const inputBg = isDark ? '#1e1e28' : '#f0f0f5'
+  const inputColor = isDark ? '#f0f0f5' : '#111827'
+  const inputBorder = isDark ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)'
 
   return (
     <>
       <div
         className="occurrence-card"
-        style={{ cursor: 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
-        onClick={() => setDetailOpen(true)}
-        onMouseEnter={(e) => {
-          ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)'
-        }}
-        onMouseLeave={(e) => {
-          ;(e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)'
-        }}
+        style={{ cursor: editing ? 'default' : 'pointer', transition: 'transform 0.15s, box-shadow 0.15s' }}
+        onClick={() => !editing && setDetailOpen(true)}
+        onMouseEnter={(e) => { if (!editing) (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-1px)' }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.transform = 'translateY(0)' }}
         role="button"
         tabIndex={0}
-        onKeyDown={(e) => { if (e.key === 'Enter') setDetailOpen(true) }}
+        onKeyDown={(e) => { if (e.key === 'Enter' && !editing) setDetailOpen(true) }}
         aria-label={`Ver detalhes: ${occurrence.title}`}
       >
         <div className="occurrence-card-top">
-          <div className="occurrence-main">
-            <h3 className="occurrence-title">{occurrence.title}</h3>
-            <p className="occurrence-description">{occurrence.description}</p>
+          <div className="occurrence-main" style={{ flex: 1 }}>
+            {editing ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }} onClick={(e) => e.stopPropagation()}>
+                <input
+                  autoFocus
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  style={{
+                    fontSize: 14,
+                    fontWeight: 600,
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    border: `1px solid ${inputBorder}`,
+                    background: inputBg,
+                    color: inputColor,
+                    outline: 'none',
+                    width: '100%',
+                  }}
+                  placeholder="Título"
+                />
+                <textarea
+                  value={editDescription}
+                  onChange={(e) => setEditDescription(e.target.value)}
+                  rows={2}
+                  style={{
+                    fontSize: 12,
+                    padding: '6px 10px',
+                    borderRadius: 8,
+                    border: `1px solid ${inputBorder}`,
+                    background: inputBg,
+                    color: inputColor,
+                    outline: 'none',
+                    resize: 'vertical',
+                    width: '100%',
+                    fontFamily: 'inherit',
+                  }}
+                  placeholder="Descrição"
+                />
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={handleSaveEdit}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '4px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                      background: '#22c55e', color: '#fff', border: 'none', cursor: 'pointer',
+                    }}
+                  >
+                    <Check size={12} /> Salvar
+                  </button>
+                  <button
+                    onClick={handleCancelEdit}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                      padding: '4px 12px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                      background: 'transparent', color: '#8888a0',
+                      border: '1px solid rgba(255,255,255,0.1)', cursor: 'pointer',
+                    }}
+                  >
+                    <XIcon size={12} /> Cancelar
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h3 className="occurrence-title">{occurrence.title}</h3>
+                <p className="occurrence-description">{occurrence.description}</p>
+              </>
+            )}
           </div>
 
           <div className="occurrence-badges">
@@ -95,10 +201,31 @@ function OccurrenceCard({ occurrence, onSupport, isSupported, isAdmin, onChangeS
           </span>
         </div>
 
+        {/* Admin action row — shown only for admins, above the main footer */}
+        {isAdmin && !editing && (
+          <div className="occurrence-admin-actions" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={(e) => { e.stopPropagation(); setEditing(true) }}
+              title="Editar ocorrência"
+              className="occurrence-admin-btn occurrence-admin-btn--edit"
+            >
+              <Pencil size={11} /> Editar
+            </button>
+            <button
+              onClick={handleDeleteClick}
+              title={confirmDelete ? 'Clique novamente para confirmar' : 'Excluir ocorrência'}
+              className={`occurrence-admin-btn occurrence-admin-btn--delete${confirmDelete ? ' confirming' : ''}`}
+            >
+              <Trash2 size={11} />
+              {confirmDelete ? 'Confirmar?' : 'Excluir'}
+            </button>
+          </div>
+        )}
+
         <div className="occurrence-footer">
           <span className="category-badge">{occurrence.category}</span>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <div className="occurrence-footer-actions">
             <button
               className={`support-button${isSupported ? ' supported' : ''}`}
               onClick={(e) => { e.stopPropagation(); onSupport(occurrence.id) }}
@@ -111,20 +238,7 @@ function OccurrenceCard({ occurrence, onSupport, isSupported, isAdmin, onChangeS
             </button>
 
             <button
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 3,
-                padding: '5px 10px',
-                borderRadius: 20,
-                border: '1px solid rgba(255,255,255,0.1)',
-                background: 'transparent',
-                color: '#8888a0',
-                fontSize: 12,
-                fontWeight: 500,
-                cursor: 'pointer',
-                whiteSpace: 'nowrap',
-              }}
+              className="occurrence-details-btn"
               onClick={(e) => { e.stopPropagation(); setDetailOpen(true) }}
             >
               Detalhes
@@ -142,6 +256,9 @@ function OccurrenceCard({ occurrence, onSupport, isSupported, isAdmin, onChangeS
           isSupported={!!isSupported}
           isAdmin={isAdmin}
           onChangeStatus={onChangeStatus}
+          onDelete={onDelete}
+          onEdit={onEdit}
+          onSaveNote={onSaveNote}
           theme={theme}
         />
       )}

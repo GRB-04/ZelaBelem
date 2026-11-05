@@ -65,10 +65,6 @@ function MapController({ center, zoom }: MapControllerProps) {
 export function OccurrenceMap({
   occurrences,
   theme = 'dark',
-  onSupport: _onSupport,
-  votedByMe: _votedByMe = new Set(),
-  isAdmin: _isAdmin,
-  onChangeStatus: _onChangeStatus,
   onMarkerClick,
 }: OccurrenceMapProps) {
   const [mapCenter, setMapCenter] = useState<[number, number]>(CENTER_BELEM);
@@ -106,11 +102,12 @@ export function OccurrenceMap({
   }
 
   const isDark = theme === 'dark';
+  // Stadia Maps — gratuito para localhost/dev, sem API key necessária
   const tileUrl = isDark
-    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+    ? "https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png"
+    : "https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png";
 
-  const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  const attribution = '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
   return (
     <div className="map-shell" style={{ position: "relative", width: "100%" }}>

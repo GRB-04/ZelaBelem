@@ -23,12 +23,8 @@
   },
   "include": ["src"],
   "exclude": [
-    "src/app/components/ui",
-    "src/pages",
-    "src/components",
-    "src/data",
-    "src/types",
-    "src/styles",
+    "src/app/components",
+    "src/app/Dashboard.tsx",
     "src/imports"
   ]
 }

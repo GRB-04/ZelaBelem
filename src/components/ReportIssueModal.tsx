@@ -53,10 +53,25 @@ function compressAndGetBase64(file: File, maxWidth = 800, maxHeight = 800, quali
 }
 
 
+export interface ReportInitialData {
+  title?: string
+  description?: string
+  category?: string
+  severity?: string
+  address?: string
+  neighborhood?: string
+  latitude?: number
+  longitude?: number
+  lat?: number
+  lng?: number
+  coordinates?: { lat: number; lng: number }
+  anonymous?: boolean
+}
+
 interface ReportIssueModalProps {
   onClose: () => void
   onCreate: (occurrence: Occurrence) => void
-  initialData?: any
+  initialData?: ReportInitialData | null
   theme?: 'light' | 'dark'
 }
 
@@ -155,8 +170,8 @@ function ReportIssueModal({ onClose, onCreate, initialData, theme = 'light' }: R
   
   const [anonymous, setAnonymous] = useState(initialData?.anonymous ?? false)
   
-  const initialLat = initialData?.latitude ?? initialData?.lat
-  const initialLng = initialData?.longitude ?? initialData?.lng
+  const initialLat = initialData?.latitude ?? initialData?.lat ?? initialData?.coordinates?.lat
+  const initialLng = initialData?.longitude ?? initialData?.lng ?? initialData?.coordinates?.lng
   
   const [selectedPosition, setSelectedPosition] = useState<[number, number] | null>(
     typeof initialLat === 'number' && typeof initialLng === 'number' && !isNaN(initialLat) && !isNaN(initialLng)
@@ -279,7 +294,9 @@ function ReportIssueModal({ onClose, onCreate, initialData, theme = 'light' }: R
         if (typeof data.lat === "number" && typeof data.lon === "number") {
           return { lat: data.lat, lng: data.lon }
         }
-      } catch {}
+      } catch {
+        // Fallback silently if IP geocoding fails
+      }
     }
     return null
   }

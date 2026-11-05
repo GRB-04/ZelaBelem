@@ -1,12 +1,15 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   AlertTriangle,
   Clock3,
+  Download,
   MapPinned,
   MessageCircle,
   Plus,
+  RotateCcw,
   ShieldAlert,
+  SlidersHorizontal,
 } from 'lucide-react'
 import TopBar from '../components/TopBar'
 import MetricCard from '../components/MetricCard'
@@ -18,7 +21,24 @@ import UrbanAssistantChat from '../components/UrbanAssistantChat'
 import { mockOccurrences } from '../data/mockOccurrences'
 import type { Occurrence } from '../types/occurrence'
 import { supabase, isSupabaseConfigured } from '../lib/supabase'
-import type { AdminSession } from '../app/Login'
+import type { AdminSession } from '../lib/adminSession'
+
+interface DbIssue {
+  id: string | number
+  title: string
+  description?: string | null
+  category: string
+  status?: string | null
+  severity?: string | null
+  neighborhood?: string | null
+  address?: string | null
+  lat: number | string
+  lng: number | string
+  created_at: string
+  anonymous?: boolean | null
+  photo_url?: string | null
+  admin_note?: string | null
+}
 
 function getMostFrequentCategory(occurrences: Occurrence[]) {
   const counter = new Map<string, number>()
@@ -58,12 +78,13 @@ function getAverageResolutionDays(occurrences: Occurrence[]) {
 }
 
 interface DashboardProps {
-  session?: any
+  session?: { user?: { id?: string; email?: string; user_metadata?: Record<string, unknown> } } | null
   adminSession?: AdminSession | null
   onAdminLogout?: () => void
+  onCitizenLogout?: () => void
 }
 
-function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
+function Dashboard({ session, adminSession, onAdminLogout, onCitizenLogout }: DashboardProps) {
   const isAdmin = !!(adminSession?.isAdmin)
   const currentUserId = session?.user?.id ?? null
 
@@ -73,17 +94,24 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
   const [occurrences, setOccurrences] = useState<Occurrence[]>([])
   const [votedByMe, setVotedByMe] = useState<Set<string>>(new Set())
   const [theme, setTheme] = useState<'light' | 'dark'>('dark')
-  const [prefilledData, setPrefilledData] = useState<any>(null)
+  const [prefilledData, setPrefilledData] = useState<Partial<Occurrence> | Record<string, unknown> | null>(null)
   const [selectedMapOccurrence, setSelectedMapOccurrence] = useState<Occurrence | null>(null)
+
+  // ─── Admin exclusive filter states ─────────────────────────────────────────
+  const [adminStatusFilter, setAdminStatusFilter] = useState<'todos' | Occurrence['status']>('todos')
+  const [adminSeverityFilter, setAdminSeverityFilter] = useState<'todas' | Occurrence['severity']>('todas')
+  const [adminNeighborhoodFilter, setAdminNeighborhoodFilter] = useState<string>('todos')
+  const [adminCategoryFilter, setAdminCategoryFilter] = useState<string>('todas')
+  const [adminSortBy, setAdminSortBy] = useState<'recentes' | 'antigas' | 'apoios'>('recentes')
 
   const currentUserName = useMemo(() => {
     if (isAdmin) return 'Administrador'
     if (!session?.user) return 'Convidado'
-    const metadata = session.user.user_metadata ?? {}
+    const metadata = (session.user.user_metadata ?? {}) as Record<string, unknown>
     const fullName =
-      metadata.full_name ||
-      metadata.name ||
-      metadata.nome ||
+      (metadata.full_name as string) ||
+      (metadata.name as string) ||
+      (metadata.nome as string) ||
       session.user.email?.split('@')[0] ||
       'Gabriel'
     return String(fullName).trim().split(' ')[0]
@@ -94,6 +122,10 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
       onAdminLogout()
       return
     }
+    if (onCitizenLogout) {
+      onCitizenLogout()
+      return
+    }
     if (isSupabaseConfigured) {
       await supabase!.auth.signOut()
     } else {
@@ -101,7 +133,74 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
     }
   }
 
-  async function loadData() {
+  const loadMockData = useCallback(() => {
+    const localVotes = localStorage.getItem('zelabelem_votes')
+    const votesSet = localVotes ? new Set<string>(JSON.parse(localVotes)) : new Set<string>()
+
+    const localCounts = localStorage.getItem('zelabelem_vote_counts')
+    const countsMap: Record<string, number> = localCounts ? JSON.parse(localCounts) : {}
+
+    // Load persisted status overrides from admin
+    const savedStatuses = localStorage.getItem('zelabelem_status_overrides')
+    const statusOverrides: Record<string, Occurrence['status']> = savedStatuses
+      ? JSON.parse(savedStatuses)
+      : {}
+
+    // Load persisted admin notes
+    let adminNotesMap: Record<string, string> = {}
+    try {
+      const savedNotes = localStorage.getItem('zelabelem_admin_notes')
+      if (savedNotes) adminNotesMap = JSON.parse(savedNotes)
+    } catch { /* ignore */ }
+
+    // Load persisted edits (title / description)
+    let editsMap: Record<string, { title?: string; description?: string }> = {}
+    try {
+      const savedEdits = localStorage.getItem('zelabelem_occurrence_edits')
+      if (savedEdits) editsMap = JSON.parse(savedEdits)
+    } catch { /* ignore */ }
+
+    // Load deleted IDs
+    let deletedSet = new Set<string>()
+    try {
+      const savedDeleted = localStorage.getItem('zelabelem_deleted_ids')
+      if (savedDeleted) deletedSet = new Set(JSON.parse(savedDeleted))
+    } catch { /* ignore */ }
+
+    // Load locally created occurrences by user in demo
+    let localCreated: Occurrence[] = []
+    try {
+      const savedLocal = localStorage.getItem('zelabelem_local_occurrences')
+      if (savedLocal) {
+        localCreated = JSON.parse(savedLocal)
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar zelabelem_local_occurrences:', e)
+    }
+
+    const allOccurrences = [...localCreated, ...mockOccurrences].filter((item) => !deletedSet.has(item.id))
+
+    const loaded = allOccurrences.map((item) => {
+      const added = votesSet.has(item.id) ? 1 : 0
+      const baseCount = countsMap[item.id] !== undefined ? countsMap[item.id] : item.supportCount
+      const edited = editsMap[item.id]
+      return {
+        ...item,
+        title: edited?.title ?? item.title,
+        description: edited?.description ?? item.description,
+        supportCount: Math.max(0, baseCount + added),
+        // Apply status override if admin changed it
+        status: statusOverrides[item.id] ?? item.status,
+        // Apply admin note if saved
+        adminNote: adminNotesMap[item.id] ?? item.adminNote,
+      }
+    })
+
+    setOccurrences(loaded)
+    setVotedByMe(votesSet)
+  }, [])
+
+  const loadData = useCallback(async () => {
     if (isSupabaseConfigured) {
       try {
         const { data: dbIssues, error: issuesError } = await supabase!
@@ -117,7 +216,7 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
 
         const votesMap: Record<string, number> = {}
         if (!votesError && dbVoteCounts) {
-          dbVoteCounts.forEach((row) => {
+          dbVoteCounts.forEach((row: { issue_id: string | number; count?: number | null }) => {
             votesMap[String(row.issue_id)] = Number(row.count ?? 0)
           })
         }
@@ -130,13 +229,20 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
             .eq('user_id', currentUserId)
 
           if (dbUserVotes) {
-            dbUserVotes.forEach((row) => {
+            dbUserVotes.forEach((row: { issue_id: string | number }) => {
               votesSet.add(String(row.issue_id))
             })
           }
         }
 
-        const mapped: Occurrence[] = (dbIssues ?? []).map((db: any) => {
+        // Local notes fallback if column isn't in db yet
+        let adminNotesMap: Record<string, string> = {}
+        try {
+          const savedNotes = localStorage.getItem('zelabelem_admin_notes')
+          if (savedNotes) adminNotesMap = JSON.parse(savedNotes)
+        } catch { /* ignore */ }
+
+        const mapped: Occurrence[] = ((dbIssues as DbIssue[]) ?? []).map((db: DbIssue) => {
           let statusStr: 'aberta' | 'em análise' | 'resolvida' = 'aberta'
           const dbStatus = String(db.status ?? '').toLowerCase().trim()
           if (dbStatus === 'resolvido' || dbStatus === 'resolvida') statusStr = 'resolvida'
@@ -162,6 +268,7 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
             supportCount: votesMap[String(db.id)] ?? 0,
             anonymous: db.anonymous ?? false,
             imageUrl: db.photo_url ?? undefined,
+            adminNote: db.admin_note || adminNotesMap[String(db.id)] || undefined,
           }
         })
 
@@ -174,35 +281,7 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
     } else {
       loadMockData()
     }
-  }
-
-  function loadMockData() {
-    const localVotes = localStorage.getItem('zelabelem_votes')
-    const votesSet = localVotes ? new Set<string>(JSON.parse(localVotes)) : new Set<string>()
-
-    const localCounts = localStorage.getItem('zelabelem_vote_counts')
-    const countsMap = localCounts ? JSON.parse(localCounts) : {}
-
-    // Load persisted status overrides from admin
-    const savedStatuses = localStorage.getItem('zelabelem_status_overrides')
-    const statusOverrides: Record<string, Occurrence['status']> = savedStatuses
-      ? JSON.parse(savedStatuses)
-      : {}
-
-    const loaded = mockOccurrences.map((item) => {
-      const added = votesSet.has(item.id) ? 1 : 0
-      const baseCount = countsMap[item.id] !== undefined ? countsMap[item.id] : item.supportCount
-      return {
-        ...item,
-        supportCount: baseCount + added,
-        // Apply status override if admin changed it
-        status: statusOverrides[item.id] ?? item.status,
-      }
-    })
-
-    setOccurrences(loaded)
-    setVotedByMe(votesSet)
-  }
+  }, [currentUserId, loadMockData])
 
   useEffect(() => {
     loadData()
@@ -224,28 +303,148 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
         channel.unsubscribe()
       }
     }
-  }, [currentUserId])
+  }, [loadData])
 
   const filteredOccurrences = useMemo(() => {
+    let result = occurrences
+
     const term = search.trim().toLowerCase()
-    if (!term) return occurrences
+    if (term) {
+      result = result.filter((item) => {
+        const searchable = [
+          item.title,
+          item.description,
+          item.address,
+          item.neighborhood,
+          item.category,
+          item.status,
+          item.severity,
+          item.adminNote ?? '',
+        ]
+          .join(' ')
+          .toLowerCase()
 
-    return occurrences.filter((item) => {
-      const searchable = [
-        item.title,
-        item.description,
-        item.address,
-        item.neighborhood,
-        item.category,
-        item.status,
-        item.severity,
-      ]
-        .join(' ')
-        .toLowerCase()
+        return searchable.includes(term)
+      })
+    }
 
-      return searchable.includes(term)
+    if (isAdmin) {
+      if (adminStatusFilter !== 'todos') {
+        result = result.filter((item) => item.status === adminStatusFilter)
+      }
+      if (adminSeverityFilter !== 'todas') {
+        result = result.filter((item) => item.severity === adminSeverityFilter)
+      }
+      if (adminNeighborhoodFilter !== 'todos') {
+        result = result.filter((item) => item.neighborhood === adminNeighborhoodFilter)
+      }
+      if (adminCategoryFilter !== 'todas') {
+        result = result.filter((item) => item.category === adminCategoryFilter)
+      }
+
+      result = [...result].sort((a, b) => {
+        if (adminSortBy === 'apoios') {
+          return b.supportCount - a.supportCount
+        }
+        if (adminSortBy === 'antigas') {
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        }
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      })
+    }
+
+    return result
+  }, [
+    occurrences,
+    search,
+    isAdmin,
+    adminStatusFilter,
+    adminSeverityFilter,
+    adminNeighborhoodFilter,
+    adminCategoryFilter,
+    adminSortBy,
+  ])
+
+  const availableNeighborhoods = useMemo(() => {
+    const set = new Set<string>()
+    occurrences.forEach((o) => {
+      if (o.neighborhood) set.add(o.neighborhood)
     })
-  }, [occurrences, search])
+    return Array.from(set).sort()
+  }, [occurrences])
+
+  const availableCategories = useMemo(() => {
+    const set = new Set<string>()
+    occurrences.forEach((o) => {
+      if (o.category) set.add(o.category)
+    })
+    return Array.from(set).sort()
+  }, [occurrences])
+
+  const hasActiveAdminFilters = useMemo(() => {
+    return (
+      adminStatusFilter !== 'todos' ||
+      adminSeverityFilter !== 'todas' ||
+      adminNeighborhoodFilter !== 'todos' ||
+      adminCategoryFilter !== 'todas' ||
+      adminSortBy !== 'recentes'
+    )
+  }, [adminStatusFilter, adminSeverityFilter, adminNeighborhoodFilter, adminCategoryFilter, adminSortBy])
+
+  function handleResetAdminFilters() {
+    setAdminStatusFilter('todos')
+    setAdminSeverityFilter('todas')
+    setAdminNeighborhoodFilter('todos')
+    setAdminCategoryFilter('todas')
+    setAdminSortBy('recentes')
+  }
+
+  function handleExportCsv() {
+    if (filteredOccurrences.length === 0) {
+      alert('Nenhuma ocorrência para exportar.')
+      return
+    }
+
+    const headers = [
+      'ID',
+      'Título',
+      'Descrição',
+      'Categoria',
+      'Bairro',
+      'Endereço',
+      'Severidade',
+      'Status',
+      'Apoiadores',
+      'Data de Criação',
+      'Resposta Oficial Admin',
+    ]
+
+    const rows = filteredOccurrences.map((item) => [
+      `"${item.id}"`,
+      `"${item.title.replace(/"/g, '""')}"`,
+      `"${(item.description || '').replace(/"/g, '""')}"`,
+      `"${item.category}"`,
+      `"${item.neighborhood}"`,
+      `"${(item.address || '').replace(/"/g, '""')}"`,
+      `"${item.severity}"`,
+      `"${item.status}"`,
+      item.supportCount,
+      `"${new Date(item.createdAt).toLocaleString('pt-BR')}"`,
+      `"${(item.adminNote || '').replace(/"/g, '""')}"`,
+    ])
+
+    const csvContent = '\uFEFF' + [headers.join(';'), ...rows.map((r) => r.join(';'))].join('\r\n')
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    const timestamp = new Date().toISOString().slice(0, 10)
+    link.href = url
+    link.setAttribute('download', `zelabelem_relatorio_admin_${timestamp}.csv`)
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
 
   const metrics = useMemo(() => {
     const active = occurrences.filter((item) => item.status !== 'resolvida').length
@@ -309,10 +508,10 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
       localStorage.setItem('zelabelem_votes', JSON.stringify(Array.from(votesSet)))
 
       const localCounts = localStorage.getItem('zelabelem_vote_counts')
-      const countsMap = localCounts ? JSON.parse(localCounts) : {}
+      const countsMap: Record<string, number> = localCounts ? JSON.parse(localCounts) : {}
       const target = occurrences.find((x) => x.id === id)
       if (target) {
-        countsMap[id] = target.supportCount + (shouldVote ? 1 : -1) - (shouldVote ? 1 : 0)
+        countsMap[id] = target.supportCount + (shouldVote ? 1 : -1)
         localStorage.setItem('zelabelem_vote_counts', JSON.stringify(countsMap))
       }
     }
@@ -342,9 +541,10 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
         if (!data || data.length === 0) {
           throw new Error('Permissão negada ou ocorrência não encontrada no banco de dados.')
         }
-      } catch (err: any) {
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : String(err)
         console.error('Erro ao atualizar status no Supabase:', err)
-        alert(`Não foi possível atualizar o status no banco de dados: ${err.message || err}`)
+        alert(`Não foi possível atualizar o status no banco de dados: ${errorMessage}`)
         // Revert on error
         await loadData()
       }
@@ -358,6 +558,102 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
       localStorage.setItem('zelabelem_status_overrides', JSON.stringify(statusOverrides))
     }
   }
+
+  // ─── Admin: delete occurrence ──────────────────────────────────────────────
+  async function handleDelete(id: string) {
+    setOccurrences((prev) => prev.filter((item) => item.id !== id))
+
+    try {
+      const savedDeleted = localStorage.getItem('zelabelem_deleted_ids')
+      const deletedList: string[] = savedDeleted ? JSON.parse(savedDeleted) : []
+      if (!deletedList.includes(id)) {
+        deletedList.push(id)
+        localStorage.setItem('zelabelem_deleted_ids', JSON.stringify(deletedList))
+      }
+    } catch { /* ignore */ }
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase!.from('issues').delete().eq('id', id)
+        if (error) throw error
+      } catch (err) {
+        console.error('Erro ao excluir ocorrência:', err)
+        alert('Não foi possível excluir a ocorrência no banco de dados.')
+        await loadData()
+      }
+    } else {
+      try {
+        const saved = localStorage.getItem('zelabelem_local_occurrences')
+        const list: Occurrence[] = saved ? JSON.parse(saved) : []
+        localStorage.setItem('zelabelem_local_occurrences', JSON.stringify(list.filter((o) => o.id !== id)))
+      } catch { /* ignore */ }
+    }
+  }
+
+  // ─── Admin: edit occurrence title/description ─────────────────────────────
+  async function handleEdit(id: string, title: string, description: string) {
+    setOccurrences((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, title, description } : item))
+    )
+
+    try {
+      const savedEdits = localStorage.getItem('zelabelem_occurrence_edits')
+      const edits: Record<string, { title?: string; description?: string }> = savedEdits ? JSON.parse(savedEdits) : {}
+      edits[id] = { title, description }
+      localStorage.setItem('zelabelem_occurrence_edits', JSON.stringify(edits))
+    } catch { /* ignore */ }
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase!
+          .from('issues')
+          .update({ title, description })
+          .eq('id', id)
+        if (error) throw error
+      } catch (err) {
+        console.error('Erro ao editar ocorrência:', err)
+        alert('Não foi possível salvar as alterações no banco de dados.')
+        await loadData()
+      }
+    } else {
+      try {
+        const saved = localStorage.getItem('zelabelem_local_occurrences')
+        const list: Occurrence[] = saved ? JSON.parse(saved) : []
+        localStorage.setItem(
+          'zelabelem_local_occurrences',
+          JSON.stringify(list.map((o) => (o.id === id ? { ...o, title, description } : o)))
+        )
+      } catch { /* ignore */ }
+    }
+  }
+
+  // ─── Admin: save official note ────────────────────────────────────────────
+  async function handleSaveNote(id: string, note: string) {
+    setOccurrences((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, adminNote: note } : item))
+    )
+
+    try {
+      const saved = localStorage.getItem('zelabelem_admin_notes')
+      const notes: Record<string, string> = saved ? JSON.parse(saved) : {}
+      notes[id] = note
+      localStorage.setItem('zelabelem_admin_notes', JSON.stringify(notes))
+    } catch { /* ignore */ }
+
+    if (isSupabaseConfigured) {
+      try {
+        const { error } = await supabase!
+          .from('issues')
+          .update({ admin_note: note })
+          .eq('id', id)
+        if (error) throw error
+      } catch (err) {
+        console.error('Erro ao salvar nota admin:', err)
+        // Non-critical: column may not exist yet — fail silently
+      }
+    }
+  }
+
 
   async function handleCreateOccurrence(newOccurrence: Occurrence) {
     setOccurrences((prev) => [newOccurrence, ...prev])
@@ -390,10 +686,18 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
         console.error('Erro ao criar ocorrência no Supabase:', err)
         alert('Ocorrência criada localmente, mas houve um erro ao enviar para o banco de dados.')
       }
+    } else {
+      try {
+        const savedLocal = localStorage.getItem('zelabelem_local_occurrences')
+        const list: Occurrence[] = savedLocal ? JSON.parse(savedLocal) : []
+        localStorage.setItem('zelabelem_local_occurrences', JSON.stringify([newOccurrence, ...list]))
+      } catch (err) {
+        console.warn('Falha ao salvar ocorrência localmente:', err)
+      }
     }
   }
 
-  function handleStartReport(data: any) {
+  function handleStartReport(data: Partial<Occurrence> | Record<string, unknown>) {
     setPrefilledData(data)
     setIsChatOpen(false)
     setIsModalOpen(true)
@@ -451,6 +755,130 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
           />
         </div>
 
+        {isAdmin && (
+          <div className="admin-toolbar-card">
+            <div className="admin-toolbar-header">
+              <div className="admin-toolbar-title-wrap">
+                <SlidersHorizontal size={16} className="admin-toolbar-icon" />
+                <span className="admin-toolbar-title">Painel de Gestão & Filtros Avançados</span>
+                <span className="admin-toolbar-badge">Exclusivo Admin</span>
+              </div>
+              <div className="admin-toolbar-actions">
+                {hasActiveAdminFilters && (
+                  <button
+                    type="button"
+                    onClick={handleResetAdminFilters}
+                    className="admin-btn-secondary"
+                    title="Limpar todos os filtros"
+                  >
+                    <RotateCcw size={12} /> Limpar filtros
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={handleExportCsv}
+                  className="admin-btn-export"
+                  title="Exportar ocorrências filtradas para CSV"
+                >
+                  <Download size={13} /> Exportar CSV ({filteredOccurrences.length})
+                </button>
+              </div>
+            </div>
+
+            <div className="admin-filter-grid">
+              {/* Status */}
+              <div className="admin-filter-field">
+                <label className="admin-filter-label">Status</label>
+                <select
+                  value={adminStatusFilter}
+                  onChange={(e) => setAdminStatusFilter(e.target.value as 'todos' | Occurrence['status'])}
+                  className="admin-filter-select"
+                >
+                  <option value="todos">Todos os status</option>
+                  <option value="aberta">Aberta</option>
+                  <option value="em análise">Em análise</option>
+                  <option value="resolvida">Resolvida</option>
+                </select>
+              </div>
+
+              {/* Severidade */}
+              <div className="admin-filter-field">
+                <label className="admin-filter-label">Severidade</label>
+                <select
+                  value={adminSeverityFilter}
+                  onChange={(e) => setAdminSeverityFilter(e.target.value as 'todas' | Occurrence['severity'])}
+                  className="admin-filter-select"
+                >
+                  <option value="todas">Todas as severidades</option>
+                  <option value="alta">Alta</option>
+                  <option value="média">Média</option>
+                  <option value="baixa">Baixa</option>
+                </select>
+              </div>
+
+              {/* Bairro */}
+              <div className="admin-filter-field">
+                <label className="admin-filter-label">Bairro</label>
+                <select
+                  value={adminNeighborhoodFilter}
+                  onChange={(e) => setAdminNeighborhoodFilter(e.target.value)}
+                  className="admin-filter-select"
+                >
+                  <option value="todos">Todos os bairros</option>
+                  {availableNeighborhoods.map((n) => (
+                    <option key={n} value={n}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Categoria */}
+              <div className="admin-filter-field">
+                <label className="admin-filter-label">Categoria</label>
+                <select
+                  value={adminCategoryFilter}
+                  onChange={(e) => setAdminCategoryFilter(e.target.value)}
+                  className="admin-filter-select"
+                >
+                  <option value="todas">Todas as categorias</option>
+                  {availableCategories.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Ordenação */}
+              <div className="admin-filter-field">
+                <label className="admin-filter-label">Ordenar por</label>
+                <select
+                  value={adminSortBy}
+                  onChange={(e) => setAdminSortBy(e.target.value as 'recentes' | 'antigas' | 'apoios')}
+                  className="admin-filter-select"
+                >
+                  <option value="recentes">Mais recentes</option>
+                  <option value="apoios">Mais apoiadas</option>
+                  <option value="antigas">Mais antigas</option>
+                </select>
+              </div>
+            </div>
+
+            {hasActiveAdminFilters && (
+              <div className="admin-filter-active-summary">
+                <span>Filtrando por: </span>
+                {adminStatusFilter !== 'todos' && <span className="admin-filter-pill">Status: {adminStatusFilter}</span>}
+                {adminSeverityFilter !== 'todas' && <span className="admin-filter-pill">Severidade: {adminSeverityFilter}</span>}
+                {adminNeighborhoodFilter !== 'todos' && <span className="admin-filter-pill">Bairro: {adminNeighborhoodFilter}</span>}
+                {adminCategoryFilter !== 'todas' && <span className="admin-filter-pill">Categoria: {adminCategoryFilter}</span>}
+                {adminSortBy !== 'recentes' && <span className="admin-filter-pill">Ordem: {adminSortBy}</span>}
+                <span className="admin-filter-count">({filteredOccurrences.length} de {occurrences.length} encontradas)</span>
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="main-grid">
           <section className="panel">
             <div className="panel-header">
@@ -468,6 +896,9 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
               votedByMe={votedByMe}
               isAdmin={isAdmin}
               onChangeStatus={handleChangeStatus}
+              onDelete={handleDelete}
+              onEdit={handleEdit}
+              onSaveNote={handleSaveNote}
               theme={theme}
             />
           </section>
@@ -547,6 +978,9 @@ function Dashboard({ session, adminSession, onAdminLogout }: DashboardProps) {
           isSupported={votedByMe.has(selectedMapOccurrence.id)}
           isAdmin={isAdmin}
           onChangeStatus={handleChangeStatus}
+          onDelete={handleDelete}
+          onEdit={handleEdit}
+          onSaveNote={handleSaveNote}
           theme={theme}
         />
       )}

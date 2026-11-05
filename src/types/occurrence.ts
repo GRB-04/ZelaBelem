@@ -16,4 +16,5 @@ export interface Occurrence {
   supportCount: number
   anonymous: boolean
   imageUrl?: string
+  adminNote?: string
 }
