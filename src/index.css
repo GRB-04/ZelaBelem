@@ -1961,3 +1961,8 @@ textarea {
   margin-left: 4px;
 }
 
+
+/* Dark filter for OSM tiles (inverts colors to simulate dark map) */
+.map-tiles-dark {
+  filter: invert(100%) hue-rotate(180deg) brightness(0.85) contrast(0.9);
+}

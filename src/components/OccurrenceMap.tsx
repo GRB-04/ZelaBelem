@@ -102,12 +102,12 @@ export function OccurrenceMap({
   }
 
   const isDark = theme === 'dark';
-  // CartoDB Basemaps — gratuito, sem API key, disponivel em produção
+  // OpenStreetMap — gratuito, sem API key, disponivel em produção
   const tileUrl = isDark
-    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png";
+    ? "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-  const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
   return (
     <div className="map-shell" style={{ position: "relative", width: "100%" }}>
@@ -214,7 +214,7 @@ export function OccurrenceMap({
         style={{ width: "100%", height: "100%" }}
       >
         <MapController center={mapCenter} zoom={mapZoom} />
-        <TileLayer url={tileUrl} attribution={attribution} />
+        <TileLayer url={tileUrl} attribution={attribution} className={isDark ? "map-tiles-dark" : ""} />
 
         {userPos && (
           <Marker position={userPos} icon={createUserIcon()} />
