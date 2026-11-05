@@ -435,11 +435,19 @@ function ReportIssueModal({ onClose, onCreate, initialData, theme = 'light' }: R
     }
   }
 
-  const tileUrl = isDark
-    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+  const stadiaKey = import.meta.env.VITE_STADIA_API_KEY;
 
-  const attribution = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
+  const tileUrl = stadiaKey
+    ? (isDark
+        ? `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key=${stadiaKey}`
+        : `https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=${stadiaKey}`)
+    : (isDark
+        ? "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+        : "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}");
+
+  const attribution = stadiaKey
+    ? '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    : 'Tiles &copy; <a href="https://www.esri.com/">Esri</a>';
 
   return createPortal(
     <div className="modal-overlay" style={{ backgroundColor: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(17,24,39,0.28)' }} onClick={onClose}>
