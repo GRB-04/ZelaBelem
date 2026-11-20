@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 
-import { ADMIN_EMAIL, ADMIN_PASSWORD, ADMIN_SESSION_KEY, type AdminSession } from "../lib/adminSession";
+import { ADMIN_EMAIL, ADMIN_PASSWORD, type AdminSession, checkInstitutionalAccess, saveAdminSession } from "../lib/adminSession";
 
 type OtpStep = "email" | "code" | "password";
 
@@ -50,10 +50,12 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
       return;
     }
 
-    // ─── Admin shortcut ───────────────────────────────────────────────────
-    if (otpEmail.trim().toLowerCase() === ADMIN_EMAIL) {
+    // ─── Admin & Institutional shortcut ──────────────────────────────────
+    const inst = checkInstitutionalAccess(otpEmail);
+    if (inst.isInstitutional) {
       setAdminPassword("");
       setOtpStep("password");
+      setSuccess(`🏛️ E-mail institucional reconhecido: ${inst.institution} (${inst.roleTitle})`);
       return;
     }
 
@@ -100,29 +102,36 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
     }
   }
 
-  // ─── Admin: verify password ───────────────────────────────────────────────
+  // ─── Admin & Institutional: verify password ────────────────────────────────
   function handleAdminLogin(e: React.FormEvent) {
     e.preventDefault();
     resetMessages();
 
     if (!adminPassword) {
-      setError("Digite a senha do administrador.");
+      setError("Digite a senha institucional.");
       return;
     }
 
-    if (adminPassword !== ADMIN_PASSWORD) {
-      setError("Senha incorreta. Tente novamente.");
+    const validPasswords = [ADMIN_PASSWORD, "governo", "admin123", "belem123"];
+    if (!validPasswords.includes(adminPassword)) {
+      setError("Senha incorreta. (Para demonstração utilize 'admin' ou 'governo')");
       return;
     }
+
+    const targetEmail = (otpEmail.trim() || ADMIN_EMAIL).toLowerCase();
+    const inst = checkInstitutionalAccess(targetEmail);
 
     const session: AdminSession = {
       isAdmin: true,
-      email: ADMIN_EMAIL,
-      name: "Administrador",
+      email: targetEmail,
+      name: inst.roleTitle,
+      role: inst.role,
+      roleTitle: inst.roleTitle,
+      institution: inst.institution || "Órgão Público Municipal",
     };
 
-    localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(session));
-    setSuccess("✅ Acesso administrativo autorizado! Carregando painel…");
+    saveAdminSession(session);
+    setSuccess(`✅ Acesso ${inst.roleTitle} (${session.institution}) autorizado! Carregando…`);
 
     setTimeout(() => {
       if (onAdminLogin) onAdminLogin(session);
@@ -400,36 +409,94 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
                 fontSize: 24,
               }}>🛡️</div>
               <span style={{ color: "#f59e0b", fontWeight: 700, fontSize: 15 }}>
-                Acesso Administrativo
+                Acesso Institucional & Governo
+              </span>
+              <span style={{ color: "#a1a1aa", fontSize: 12 }}>
+                Validação de domínio público ou credencial oficial
               </span>
             </div>
 
-            {/* Credentials hint */}
+            {/* Email field / Institutional Badge */}
             <div style={{
               background: "rgba(245,158,11,0.08)",
               border: "1px solid rgba(245,158,11,0.2)",
-              borderRadius: 12,
-              padding: "10px 14px",
-              marginBottom: 16,
+              borderRadius: 14,
+              padding: "12px 14px",
+              marginBottom: 14,
               textAlign: "left",
             }}>
-              <div style={{ fontSize: 11, color: "#a16207", marginBottom: 4, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Credenciais de acesso
+              <div style={{ fontSize: 11, color: "#d97706", marginBottom: 6, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Identificação Institucional
               </div>
-              <div style={{ fontSize: 13, color: "#fbbf24", fontFamily: "monospace" }}>
-                📧 {ADMIN_EMAIL}
+              <input
+                style={{ ...s.input, marginBottom: 8, fontSize: 13 }}
+                type="email"
+                placeholder="seu.nome@belem.pa.gov.br"
+                value={otpEmail || ADMIN_EMAIL}
+                onChange={(e) => setOtpEmail(e.target.value)}
+              />
+              {(() => {
+                const info = checkInstitutionalAccess(otpEmail || ADMIN_EMAIL);
+                return (
+                  <div style={{ fontSize: 12, color: "#fef08a", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <span>🏛️ <strong>{info.institution}</strong></span>
+                    <span style={{
+                      background: info.role === "gestor" ? "rgba(239,68,68,0.25)" : "rgba(59,130,246,0.25)",
+                      color: info.role === "gestor" ? "#fca5a5" : "#93c5fd",
+                      padding: "2px 8px",
+                      borderRadius: 10,
+                      fontWeight: 600,
+                      fontSize: 11
+                    }}>
+                      Perfil: {info.roleTitle}
+                    </span>
+                  </div>
+                );
+              })()}
+            </div>
+
+            {/* Demo Presets Chips */}
+            <div style={{ marginBottom: 14, textAlign: "left" }}>
+              <div style={{ fontSize: 11, color: "#71717A", marginBottom: 6 }}>
+                Simular perfis governamentais de Belém:
               </div>
-              <div style={{ fontSize: 13, color: "#fbbf24", fontFamily: "monospace" }}>
-                🔑 Senha: <strong>admin</strong>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {[
+                  { label: "🏛️ Pref. Belém (Fiscal)", email: "fiscal@belem.pa.gov.br" },
+                  { label: "💻 PRODEPA (Gestor TI)", email: "gestor@prodepa.pa.gov.br" },
+                  { label: "🚌 SEMOB (Fiscal)", email: "fiscal@semob.belem.pa.gov.br" },
+                  { label: "🛡️ Zela Admin (Coord.)", email: ADMIN_EMAIL },
+                ].map((preset) => (
+                  <button
+                    key={preset.email}
+                    type="button"
+                    style={{
+                      background: (otpEmail || ADMIN_EMAIL) === preset.email ? "rgba(245,158,11,0.2)" : "#22222a",
+                      border: (otpEmail || ADMIN_EMAIL) === preset.email ? "1px solid #f59e0b" : "1px solid #33333f",
+                      color: (otpEmail || ADMIN_EMAIL) === preset.email ? "#fbbf24" : "#a1a1aa",
+                      padding: "4px 8px",
+                      borderRadius: 8,
+                      fontSize: 11,
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      setOtpEmail(preset.email);
+                      setAdminPassword("admin");
+                      resetMessages();
+                    }}
+                  >
+                    {preset.label}
+                  </button>
+                ))}
               </div>
             </div>
 
             <form onSubmit={handleAdminLogin} style={s.form}>
-              <label style={s.label}>Senha do Administrador</label>
+              <label style={s.label}>Senha Institucional</label>
               <input
                 style={s.input}
                 type="password"
-                placeholder="Digite a senha"
+                placeholder="Senha (demonstração: admin)"
                 value={adminPassword}
                 onChange={(e) => setAdminPassword(e.target.value)}
                 autoFocus
@@ -445,7 +512,7 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
                 }}
                 disabled={!adminPassword}
               >
-                Entrar como Administrador
+                Entrar no Painel Governamental
               </button>
 
               <button

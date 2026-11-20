@@ -211,14 +211,16 @@ function OccurrenceCard({
             >
               <Pencil size={11} /> Editar
             </button>
-            <button
-              onClick={handleDeleteClick}
-              title={confirmDelete ? 'Clique novamente para confirmar' : 'Excluir ocorrência'}
-              className={`occurrence-admin-btn occurrence-admin-btn--delete${confirmDelete ? ' confirming' : ''}`}
-            >
-              <Trash2 size={11} />
-              {confirmDelete ? 'Confirmar?' : 'Excluir'}
-            </button>
+            {onDelete && (
+              <button
+                onClick={handleDeleteClick}
+                title={confirmDelete ? 'Clique novamente para confirmar' : 'Excluir ocorrência'}
+                className={`occurrence-admin-btn occurrence-admin-btn--delete${confirmDelete ? ' confirming' : ''}`}
+              >
+                <Trash2 size={11} />
+                {confirmDelete ? 'Confirmar?' : 'Excluir'}
+              </button>
+            )}
           </div>
         )}
 

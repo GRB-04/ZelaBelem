@@ -717,8 +717,32 @@ function Dashboard({ session, adminSession, onAdminLogout, onCitizenLogout }: Da
 
       <main className="page-shell">
         {isAdmin && (
-          <div className="admin-banner">
-            🛡️ Você está no <strong>Modo Administrador</strong> — Gerencie os status das ocorrências abaixo.
+          <div className="admin-banner" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span style={{ fontSize: 20 }}>🛡️</span>
+              <div>
+                <div>
+                  Você está no <strong>Modo {adminSession?.roleTitle || "Administrador"}</strong> &bull; <span style={{ color: "#fef08a" }}>{adminSession?.institution || "Prefeitura Municipal de Belém"}</span>
+                </div>
+                <div style={{ fontSize: 12, opacity: 0.85, marginTop: 2 }}>
+                  {adminSession?.role === "fiscal"
+                    ? "📋 Nível Fiscal / Operador: Atualização de status e emissão de Resposta Oficial. (Exclusão restrita a Gestores)"
+                    : "⚡ Nível Gestor Geral: Acesso integral — alteração de status, resposta oficial, relatórios e exclusão."}
+                </div>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <span style={{
+                fontSize: 11,
+                padding: "3px 8px",
+                borderRadius: 8,
+                background: adminSession?.role === "fiscal" ? "rgba(59,130,246,0.2)" : "rgba(245,158,11,0.2)",
+                color: adminSession?.role === "fiscal" ? "#93c5fd" : "#fde047",
+                border: "1px solid currentColor"
+              }}>
+                {adminSession?.email}
+              </span>
+            </div>
           </div>
         )}
 
@@ -896,7 +920,7 @@ function Dashboard({ session, adminSession, onAdminLogout, onCitizenLogout }: Da
               votedByMe={votedByMe}
               isAdmin={isAdmin}
               onChangeStatus={handleChangeStatus}
-              onDelete={handleDelete}
+              onDelete={adminSession?.role === 'fiscal' ? undefined : handleDelete}
               onEdit={handleEdit}
               onSaveNote={handleSaveNote}
               theme={theme}

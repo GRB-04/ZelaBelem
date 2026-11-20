@@ -242,8 +242,8 @@ export default function OccurrenceDetailModal({
             >
               <TileLayer
                 url={isDark
-                  ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                  : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
+                  ? `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key=${import.meta.env.VITE_STADIA_API_KEY || '11ea0e11-72f1-4a3f-b211-4c8f0bc64590'}`
+                  : `https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=${import.meta.env.VITE_STADIA_API_KEY || '11ea0e11-72f1-4a3f-b211-4c8f0bc64590'}`
                 }
               />
               <Marker position={[occurrence.latitude, occurrence.longitude]} icon={pinIcon} />
@@ -433,11 +433,11 @@ export default function OccurrenceDetailModal({
                 style={{ width: '100%', height: '100%' }}
               >
                 <TileLayer
-                  url={isDark
-                    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
-                    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-                  }
-                />
+                url={isDark
+                  ? `https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png?api_key=${import.meta.env.VITE_STADIA_API_KEY || '11ea0e11-72f1-4a3f-b211-4c8f0bc64590'}`
+                  : `https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png?api_key=${import.meta.env.VITE_STADIA_API_KEY || '11ea0e11-72f1-4a3f-b211-4c8f0bc64590'}`
+                }
+              />
                 <Marker position={[occurrence.latitude, occurrence.longitude]} icon={pinIcon} />
               </MapContainer>
             </div>
