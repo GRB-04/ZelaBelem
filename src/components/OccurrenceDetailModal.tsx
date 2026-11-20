@@ -168,7 +168,7 @@ export default function OccurrenceDetailModal({
 
 
   function handleShare() {
-    const text = `📍 Ocorrência em ${occurrence.neighborhood}: ${occurrence.title}\n${occurrence.description}\n\nRegistrado no Zela`
+    const text = `Ocorrência em ${occurrence.neighborhood}: ${occurrence.title}\n${occurrence.description}\n\nRegistrado no Zela`
     if (navigator.share) {
       navigator.share({ title: occurrence.title, text }).catch(() => {})
     } else {
@@ -320,7 +320,7 @@ export default function OccurrenceDetailModal({
                 {occurrence.title}
               </h2>
               <p style={{ margin: '4px 0 0', fontSize: 13, color: muted }}>
-                {occurrence.anonymous ? '👤 Anônimo' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><User size={12} /> Cidadão identificado</span>}
+                {occurrence.anonymous ? 'Anônimo' : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><User size={12} /> Cidadão identificado</span>}
               </p>
             </div>
 
@@ -626,7 +626,7 @@ export default function OccurrenceDetailModal({
                     }}
                   >
                     {noteSaved
-                      ? <span style={{ color: '#4ade80' }}>✓ Nota salva com sucesso!</span>
+                      ? <span style={{ color: '#4ade80' }}>Nota salva com sucesso!</span>
                       : adminNote || 'Clique para adicionar uma resposta oficial…'}
                   </div>
                 )}

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { supabase, isSupabaseConfigured } from "../lib/supabase";
 
+import { Shield } from "lucide-react";
 import { ADMIN_EMAIL, ADMIN_PASSWORD, type AdminSession, checkInstitutionalAccess, saveAdminSession } from "../lib/adminSession";
 
 type OtpStep = "email" | "code" | "password";
@@ -55,7 +56,7 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
     if (inst.isInstitutional) {
       setAdminPassword("");
       setOtpStep("password");
-      setSuccess(`🏛️ E-mail institucional reconhecido: ${inst.institution} (${inst.roleTitle})`);
+      setSuccess(`E-mail institucional reconhecido: ${inst.institution} (${inst.roleTitle})`);
       return;
     }
 
@@ -65,7 +66,7 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
     }
 
     if (!isSupabaseConfigured) {
-      setError("⚠️ Modo de demonstração local ativo. Utilize o botão 'Acessar como Convidado' abaixo para entrar imediatamente ou a aba 'Administrador' (senha: admin).");
+      setError("Modo de demonstração local ativo. Utilize o botão 'Acessar como Convidado' abaixo para entrar imediatamente ou a aba 'Administrador' (senha: admin).");
       return;
     }
 
@@ -87,7 +88,7 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
 
       setOtpStep("code");
       setResendCooldown(60);
-      setSuccess("📩 Código enviado! Confira sua caixa de entrada.");
+      setSuccess("Código enviado! Confira sua caixa de entrada.");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err ?? "");
       if (msg.toLowerCase().includes("rate limit")) {
@@ -131,7 +132,7 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
     };
 
     saveAdminSession(session);
-    setSuccess(`✅ Acesso ${inst.roleTitle} (${session.institution}) autorizado! Carregando…`);
+    setSuccess(`Acesso ${inst.roleTitle} (${session.institution}) autorizado! Carregando…`);
 
     setTimeout(() => {
       if (onAdminLogin) onAdminLogin(session);
@@ -164,7 +165,7 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
         });
       }
 
-      setSuccess("✅ Acesso autorizado! Carregando painel…");
+      setSuccess("Acesso autorizado! Carregando painel…");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err ?? "");
       if (msg.toLowerCase().includes("invalid") || msg.toLowerCase().includes("expired")) {
@@ -223,7 +224,7 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
               style={{ ...s.accessBtn, ...(authMode !== "admin" ? s.accessBtnActive : {}) }}
               onClick={() => { setAuthMode("login"); resetMessages(); }}
             >
-              👤 Cidadão
+              Cidadão
             </button>
             <button
               type="button"
@@ -235,7 +236,7 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
                 resetMessages();
               }}
             >
-              🛡️ Administrador
+              Administrador
             </button>
           </div>
         )}
@@ -311,7 +312,7 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
                     style={s.guestBtn}
                     onClick={onBypass}
                   >
-                    🚀 Acessar como Convidado
+                    Acessar como Convidado
                   </button>
                 </>
               )}
@@ -407,7 +408,7 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
                 border: "1px solid rgba(245,158,11,0.4)",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 24,
-              }}>🛡️</div>
+              }}><Shield size={24} color="#f59e0b" /></div>
               <span style={{ color: "#f59e0b", fontWeight: 700, fontSize: 15 }}>
                 Acesso Institucional & Governo
               </span>
@@ -439,7 +440,7 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
                 const info = checkInstitutionalAccess(otpEmail || ADMIN_EMAIL);
                 return (
                   <div style={{ fontSize: 12, color: "#fef08a", display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <span>🏛️ <strong>{info.institution}</strong></span>
+                    <span><strong>{info.institution}</strong></span>
                     <span style={{
                       background: info.role === "gestor" ? "rgba(239,68,68,0.25)" : "rgba(59,130,246,0.25)",
                       color: info.role === "gestor" ? "#fca5a5" : "#93c5fd",
@@ -462,10 +463,10 @@ export default function Login({ onBypass, onAdminLogin }: LoginProps) {
               </div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {[
-                  { label: "🏛️ Pref. Belém (Fiscal)", email: "fiscal@belem.pa.gov.br" },
-                  { label: "💻 PRODEPA (Gestor TI)", email: "gestor@prodepa.pa.gov.br" },
-                  { label: "🚌 SEMOB (Fiscal)", email: "fiscal@semob.belem.pa.gov.br" },
-                  { label: "🛡️ Zela Admin (Coord.)", email: ADMIN_EMAIL },
+                  { label: "Pref. Belém (Fiscal)", email: "fiscal@belem.pa.gov.br" },
+                  { label: "PRODEPA (Gestor TI)", email: "gestor@prodepa.pa.gov.br" },
+                  { label: "SEMOB (Fiscal)", email: "fiscal@semob.belem.pa.gov.br" },
+                  { label: "Zela Coordenação (Admin)", email: ADMIN_EMAIL },
                 ].map((preset) => (
                   <button
                     key={preset.email}

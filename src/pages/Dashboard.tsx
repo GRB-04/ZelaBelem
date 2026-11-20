@@ -8,6 +8,7 @@ import {
   MessageCircle,
   Plus,
   RotateCcw,
+  Shield,
   ShieldAlert,
   SlidersHorizontal,
 } from 'lucide-react'
@@ -719,15 +720,15 @@ function Dashboard({ session, adminSession, onAdminLogout, onCitizenLogout }: Da
         {isAdmin && (
           <div className="admin-banner" style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap", justifyContent: "space-between" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-              <span style={{ fontSize: 20 }}>🛡️</span>
+              <Shield size={20} color="#f59e0b" />
               <div>
                 <div>
                   Você está no <strong>Modo {adminSession?.roleTitle || "Administrador"}</strong> &bull; <span style={{ color: "#fef08a" }}>{adminSession?.institution || "Prefeitura Municipal de Belém"}</span>
                 </div>
                 <div style={{ fontSize: 12, opacity: 0.85, marginTop: 2 }}>
                   {adminSession?.role === "fiscal"
-                    ? "📋 Nível Fiscal / Operador: Atualização de status e emissão de Resposta Oficial. (Exclusão restrita a Gestores)"
-                    : "⚡ Nível Gestor Geral: Acesso integral — alteração de status, resposta oficial, relatórios e exclusão."}
+                    ? "Nível Fiscal / Operador: Atualização de status e emissão de Resposta Oficial. (Exclusão restrita a Gestores)"
+                    : "Nível Gestor Geral: Acesso integral — alteração de status, resposta oficial, relatórios e exclusão."}
                 </div>
               </div>
             </div>
